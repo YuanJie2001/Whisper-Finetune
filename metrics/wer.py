@@ -114,6 +114,6 @@ class WER(evaluate.Metric):
             # 编辑距离 = 错误率 × 参考词数
             total_edit_distance += error_rate * ref_words
             total_ref_words += ref_words
-
+        wer()
         # 4. 避免除零错误（新版本必须加）
         return total_edit_distance / total_ref_words if total_ref_words else 0.0
