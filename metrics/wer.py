@@ -101,19 +101,4 @@ class WER(evaluate.Metric):
             # 2. 直接返回整体词错误率（WER）
             return wer(ref_str, hyp_str)
 
-        # 3. 逐句处理（核心改造点！）
-        total_edit_distance = 0.0  # 总编辑距离 = 替换+删除+插入
-        total_ref_words = 0  # 总参考词数
-
-        for ref, hyp in zip(references, predictions):
-            # 关键：用wer计算当前句错误率
-            error_rate = wer(ref, hyp)
-            # 计算当前句的参考词数（关键！）
-            ref_words = len(ref.split())  # 词级处理
-
-            # 编辑距离 = 错误率 × 参考词数
-            total_edit_distance += error_rate * ref_words
-            total_ref_words += ref_words
-        wer()
-        # 4. 避免除零错误（新版本必须加）
-        return total_edit_distance / total_ref_words if total_ref_words else 0.0
+        return wer(references, predictions)
