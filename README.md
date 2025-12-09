@@ -353,7 +353,7 @@ python infer_gui.py --model_path=models/whisper-tiny-finetune
 `--host`指定服务启动的地址，这里设置为`0.0.0.0`，即任何地址都可以访问。`--port`指定使用的端口号。`--model_path`指定的 Transformers 模型。~~`--num_workers`指定是使用多少个线程并发推理，这在 Web 部署上很重要，当有多个并发访问是可以同时推理。其他更多的参数请查看这个程序。~~
 
 ```shell
-python infer_server.py --host=0.0.0.0 --port=5000 --model_path=models/whisper-tiny-finetune
+nohup python3 infer_server.py --host=0.0.0.0 --port=5000 --model_path=models/whisper-large-v3-turbo-finetune > output.log 2>&1 &
 ```
 
 ### 接口文档

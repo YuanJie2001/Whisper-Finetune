@@ -291,7 +291,7 @@ python merge_lora.py --lora_model=output/whisper-tiny/checkpoint-best/ --output_
 The following procedure is performed to evaluate the model, the most important two parameters are respectively. The first `--model_path` specifies the path of the merged model, but also supports direct use of the original whisper model, such as directly specifying `openai/Whisper-large-v2`, and the second `--metric` specifies the evaluation method. For example, there are word error rate `cer` and word error rate `wer`. Note: Models without fine-tuning may have punctuation in their output, affecting accuracy. See this program for more parameters.
 
 ```shell
-python evaluation.py --model_path=models/whisper-tiny-finetune --metric=cer
+python3 evaluation.py --model_path=models/whisper-tiny-finetune --metric=cer
 ```
 
 <a name='预测'></a>

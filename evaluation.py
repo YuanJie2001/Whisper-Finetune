@@ -19,26 +19,25 @@ from utils.data_utils import (
 from utils.reader import CustomDataset
 from utils.utils import print_arguments, add_arguments
 
-os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 parser = argparse.ArgumentParser(description=__doc__)
 add_arg = functools.partial(add_arguments, argparser=parser)
 add_arg("test_data", type=str, default="dataset/test.json", help="测试集的路径")
 add_arg(
     "model_path",
     type=str,
-    default="models/whisper-tiny-finetune",
+    default="models/whisper-large-v3-finetune",
     help="合并模型的路径，或者是huggingface上模型的名称",
 )
-add_arg("batch_size", type=int, default=16, help="评估的batch size")
+add_arg("batch_size", type=int, default=8, help="评估的batch size")
 add_arg("num_workers", type=int, default=8, help="读取数据的线程数量")
 add_arg(
     "language",
     type=str,
-    default="Chinese",
+    default="English",
     help="设置语言，可全称也可简写，如果为None则评估的是多语言",
 )
 add_arg("remove_pun", type=bool, default=True, help="是否移除标点符号")
-add_arg("to_simple", type=bool, default=True, help="是否转为简体中文")
+add_arg("to_simple", type=bool, default=False, help="是否转为简体中文")
 add_arg("timestamps", type=bool, default=False, help="评估时是否使用时间戳数据")
 add_arg("min_audio_len", type=float, default=0.5, help="最小的音频长度，单位秒")
 add_arg("max_audio_len", type=float, default=30, help="最大的音频长度，单位秒")
@@ -52,7 +51,7 @@ add_arg(
     choices=["transcribe", "translate"],
     help="模型的任务",
 )
-add_arg("metric", type=str, default="cer", choices=["cer", "wer"], help="评估方式")
+add_arg("metric", type=str, default="wer", choices=["cer", "wer"], help="评估方式")
 args = parser.parse_args()
 print_arguments(args)
 
@@ -76,8 +75,12 @@ def main():
         local_files_only=args.local_files_only,
     )
     # 获取模型
+    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     model = WhisperForConditionalGeneration.from_pretrained(
-        args.model_path, device_map="auto", local_files_only=args.local_files_only
+        args.model_path,
+        device_map="auto",
+        dtype=torch_dtype,
+        local_files_only=args.local_files_only,
     )
     model.generation_config.language = args.language.lower()
     model.generation_config.forced_decoder_ids = None
@@ -127,26 +130,16 @@ def main():
                     .numpy()
                 )
                 labels = batch["labels"].cpu().numpy()
-
-                # 使用 tokenizer 的 __call__ 方法进行填充（但对于 fast tokenizer，
-                # 直接用 batch_decode 对已经是 token id 的列表解码更快）
-                labels_list = [
-                    [
-                        int(x) if x != -100 else processor.tokenizer.pad_token_id
-                        for x in row
-                    ]
-                    for row in labels
-                ]
-
+                labels = np.where(
+                    labels != -100, labels, processor.tokenizer.pad_token_id
+                )
                 # 将预测和实际的token转换为文本
                 decoded_preds = processor.tokenizer.batch_decode(
                     generated_tokens, skip_special_tokens=True
                 )
-                # 直接对 token id 列表进行解码，避免额外的 encode+pad 操作（fast tokenizer 更快）
                 decoded_labels = processor.tokenizer.batch_decode(
-                    labels_list, skip_special_tokens=True
+                    labels, skip_special_tokens=True
                 )
-
                 # 删除标点符号
                 if args.remove_pun:
                     decoded_preds = remove_punctuation(decoded_preds)
