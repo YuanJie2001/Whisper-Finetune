@@ -76,17 +76,8 @@ model = AutoModelForSpeechSeq2Seq.from_pretrained(
     dtype=torch_dtype,
     low_cpu_mem_usage=True,
     use_safetensors=True,
+    attn_implementation=args.use_flash_attention_2,
 )
-if args.use_flash_attention_2:
-    # 假设你用的是 xformers 或 flash attention 支持的 huggingface 库
-    from torch.nn import functional as F
-
-    # 设置模型内部 attention 使用 flash attention2
-    # 示例：仅支持部分 Transformers 版本
-    try:
-        model.enable_flash_attention_2()
-    except AttributeError:
-        print("当前模型或版本不支持 flash_attention_2")
 model.generation_config.forced_decoder_ids = None
 if args.use_bettertransformer and not args.use_flash_attention_2:
     model = model.to_bettertransformer()
