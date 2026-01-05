@@ -1,22 +1,80 @@
 #!/bin/bash
 
-CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 finetune.py --base_model=openai/whisper-tiny --use_8bit=False --per_device_train_batch_size=8 --per_device_eval_batch_size=8 --gradient_accumulation_steps=1
-CUDA_VISIBLE_DEVICES=0 python merge_lora.py --lora_model=output/whisper-tiny/checkpoint-final
+# 配置
+MODEL_PATH="models/whisper-large-v3-turbo-finetune"
+HOST="0.0.0.0"
+PORT=5000
+PID_FILE="whisper.pid"
+LOG_DIR="logs"
 
-CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 finetune.py --base_model=openai/whisper-base --use_8bit=False --per_device_train_batch_size=8 --per_device_eval_batch_size=8 --gradient_accumulation_steps=1
-CUDA_VISIBLE_DEVICES=0 python merge_lora.py --lora_model=output/whisper-base/checkpoint-final
+# 创建日志目录（如果不存在）
+mkdir -p $LOG_DIR
 
-CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 finetune.py --base_model=openai/whisper-small --use_8bit=True --per_device_train_batch_size=8 --per_device_eval_batch_size=8 --gradient_accumulation_steps=1
-CUDA_VISIBLE_DEVICES=0 python merge_lora.py --lora_model=output/whisper-small/checkpoint-final
+# 获取当天日志文件名
+get_log_file() {
+    echo "$LOG_DIR/whisper-$(date +%Y-%m-%d).log"
+}
 
-CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 finetune.py --base_model=openai/whisper-medium --use_8bit=True --per_device_train_batch_size=4 --per_device_eval_batch_size=2 --gradient_accumulation_steps=2
-CUDA_VISIBLE_DEVICES=0 python merge_lora.py --lora_model=output/whisper-medium/checkpoint-final
+start() {
+    if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
+        echo "服务已经在运行，PID=$(cat $PID_FILE)"
+        exit 1
+    fi
 
-CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 finetune.py --base_model=openai/whisper-large-v2 --use_8bit=True --per_device_train_batch_size=2 --per_device_eval_batch_size=2 --gradient_accumulation_steps=4
-CUDA_VISIBLE_DEVICES=0 python merge_lora.py --lora_model=output/whisper-large-v2/checkpoint-final
+    LOG_FILE=$(get_log_file)
+    echo "启动服务... 日志: $LOG_FILE"
+    nohup python3 infer_server.py --host=$HOST --port=$PORT --model_path=$MODEL_PATH >> "$LOG_FILE" 2>&1 &
+    echo $! > $PID_FILE
+    echo "服务启动完成，PID=$(cat $PID_FILE)"
+}
 
-CUDA_VISIBLE_DEVICES=0 python evaluation.py --model_path=models/whisper-tiny-finetune
-CUDA_VISIBLE_DEVICES=0 python evaluation.py --model_path=models/whisper-base-finetune
-CUDA_VISIBLE_DEVICES=0 python evaluation.py --model_path=models/whisper-small-finetune
-CUDA_VISIBLE_DEVICES=0 python evaluation.py --model_path=models/whisper-medium-finetune
-CUDA_VISIBLE_DEVICES=0 python evaluation.py --model_path=models/whisper-large-v2-finetune
+stop() {
+    if [ ! -f "$PID_FILE" ]; then
+        echo "PID 文件不存在，服务未启动？"
+        exit 1
+    fi
+
+    PID=$(cat "$PID_FILE")
+    if kill -0 $PID 2>/dev/null; then
+        echo "停止服务，PID=$PID ..."
+        kill $PID
+        rm -f $PID_FILE
+        echo "服务已停止"
+    else
+        echo "服务进程不存在，清理 PID 文件"
+        rm -f $PID_FILE
+    fi
+}
+
+status() {
+    if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
+        echo "服务正在运行，PID=$(cat $PID_FILE)"
+    else
+        echo "服务未运行"
+    fi
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "用法: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac

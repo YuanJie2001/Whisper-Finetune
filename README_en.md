@@ -37,21 +37,28 @@ OpenAI open-sourced project Whisper, which claims to have human-level speech rec
 
 ## Catalogue
 
-- [Introduction of the main program of the project](#项目主要程序介绍)
-- [Test table](#模型测试表)
-- [Install](#安装环境)
-- [Prepare data](#准备数据)
-- [Fine-tuning](#微调模型)
-  - [Single-GPU](#单卡训练)
-  - [Multi-GPU](#多卡训练)
-- [Merge model](#合并模型)
-- [Evaluation](#评估模型)
-- [Inference](#预测)
-- [GUI inference](#GUI界面预测)
-- [Web deploy](#Web部署) - [API docs](#接口文档)
-- [Ctranslate2 inference](#使用Ctranslate2格式模型预测)
-- [Android](#Android部署)
-- [Windows Desktop](#Windows桌面应用)
+- [Fine-tune Whisper speech recognition models and speed up reasoning](#fine-tune-whisper-speech-recognition-models-and-speed-up-reasoning)
+  - [Introduction](#introduction)
+    - [please :star:](#please-star)
+  - [Supporting models](#supporting-models)
+  - [Catalogue](#catalogue)
+  - [Introduction of the main program of the project](#introduction-of-the-main-program-of-the-project)
+  - [Test table](#test-table)
+  - [安装环境](#安装环境)
+  - [Prepare the data](#prepare-the-data)
+  - [Fine-tune](#fine-tune)
+    - [Single-GPU](#single-gpu)
+    - [Multi-GPU](#multi-gpu)
+  - [Merge model](#merge-model)
+  - [Evaluation](#evaluation)
+  - [Inference](#inference)
+  - [GUI inference](#gui-inference)
+  - [Web deploy](#web-deploy)
+    - [API docs](#api-docs)
+  - [Ctranslate2 inference](#ctranslate2-inference)
+  - [Android](#android)
+  - [Windows Desktop](#windows-desktop)
+  - [Reference](#reference)
 
 <a name='项目主要程序介绍'></a>
 
@@ -324,10 +331,10 @@ After startup, the screen is as follows:
 
 ## Web deploy
 
-`--host` specifies the address where the service will be started, here `0.0.0.0`, which means any address will be accessible. `--port`specifies the port number to use. `--model_path` specifies Transformers model. ~~`--num_workers` specifies how many threads to use for concurrent inference, which is important in Web deployments where multiple concurrent accesses can be inferred at the same time. See this program for more parameters.~~
+`--host` specifies the address where the service will be started, here `0.0.0.0`, which means any address will be accessible. `--port`specifies the port number to use. `--model_path` specifies Transformers model. 
 
 ```shell
-python infer_server.py --host=0.0.0.0 --port=5000 --model_path=models/whisper-tiny-finetune-ct2
+sh run.sh start
 ```
 
 ### API docs
